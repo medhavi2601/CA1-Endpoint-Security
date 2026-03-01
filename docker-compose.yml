@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  alert-monitor:
+    build: ./alert-monitor
+    container_name: ca1-alert-monitor
+    environment:
+      - WAZUH_API_URL=https://host.docker.internal:55000
+      - WAZUH_USER=wazuh-wui
+      - WAZUH_PASSWORD=MyS3cr37P450r.*-
+      - CHECK_INTERVAL=30
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - ca1-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  ai-analyzer:
+    build: ./ai-analyzer
+    container_name: ca1-ai-analyzer
+    environment:
+      - AI_BACKEND=ollama
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - ca1-network
+    ports:
+      - "5001:5000"
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  remediation-engine:
+    build: ./remediation-engine
+    container_name: ca1-remediation-engine
+    environment:
+      - WINDOWS_HOST=192.168.100.10
+      - LINUX_HOST=192.168.100.20
+      - ALLOWED_ACTIONS=block_ip,kill_process,log_only,disable_user
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - ca1-network
+    ports:
+      - "5002:5000"
+    restart: unless-stopped
+
+  verification:
+    build: ./verification
+    container_name: ca1-verification
+    environment:
+      - WAZUH_API_URL=https://host.docker.internal:55000
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - ca1-network
+    restart: unless-stopped
+
+networks:
+  ca1-network:
+    driver: bridge
